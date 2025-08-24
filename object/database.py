@@ -3,7 +3,10 @@ import os
 
 from object.hash import Hash
 from object.object import Object
+from object.object_reference import ObjectReference
 from object.type.blob import Blob
+from object.type.tree import Tree
+from typing import cast
 
 
 class Database:
@@ -68,7 +71,7 @@ class Database:
             case 0: raise ValueError(f"no hashes matching partial: {partial_hash}")
             case 1: return matches[0]
             case _: raise ValueError(f"Abiguous hash prefix: {partial_hash}, matches: {[str(h) for h in matches]}")
-        
+
     @staticmethod
     def get_subset(subset: str) -> list[Hash]:
         output = []
@@ -81,5 +84,46 @@ class Database:
         return output
 
     @staticmethod
-    def create_blob(path: str) -> Blob:
-        pass
+    def _is_dir(path: str) -> bool:
+        return os.path.isdir(path)
+
+    @staticmethod
+    def _create_blob_reference(path: str) -> ObjectReference:
+        contents = Database._read_file(path).decode("utf-8")
+        blob = Blob(contents)
+        name = os.path.basename(path)
+
+        return ObjectReference.from_object(blob, name)
+
+    @staticmethod
+    def _create_tree_reference(path: str) -> ObjectReference:
+        if not Database._is_dir(path):
+            return Database._create_blob_reference(path)
+
+        tree = Tree()
+        name = os.path.basename(path)
+
+        for dir in os.listdir(path):
+            dir = os.path.join(path, dir)
+
+            reference = Database._create_tree_reference(dir)
+            tree.add_reference(reference)
+
+        tree_reference = ObjectReference.from_object(tree, name)
+        return tree_reference
+
+    @staticmethod
+    def _write_reference(reference: ObjectReference):
+        object = reference.get_object()
+        Database.write_object(object)
+
+        if isinstance(object, Blob):
+            return
+
+        tree = cast(Tree, object)
+        for reference in tree.references:
+            Database._write_reference(reference)
+
+    @staticmethod
+    def store(path: str):
+        Database._write_reference(Database._create_tree_reference(path))

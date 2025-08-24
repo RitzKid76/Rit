@@ -7,8 +7,6 @@ from object.hash import Hash
 
 class Object(ABC):
 
-    name = None
-
     @classmethod
     def from_data(cls, raw_data: str) -> Object:
         from object.type.blob import Blob
@@ -36,7 +34,7 @@ class Object(ABC):
         pass
 
     def get_hash(self) -> Hash:
-        Hash.from_contents(self.get_data())
+        return Hash.from_contents(self.get_data())
 
     @staticmethod
     @abstractmethod

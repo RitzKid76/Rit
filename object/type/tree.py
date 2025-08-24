@@ -7,7 +7,8 @@ from object.object_reference import ObjectReference
 
 class Tree(Object):
 
-    references: dict[Hash, ObjectReference]
+    def __init__(self):
+        self.references: list[ObjectReference] = []
 
     @classmethod
     def _from_data(cls, data: str) -> Tree:
@@ -21,15 +22,26 @@ class Tree(Object):
             reference = ObjectReference(hash, name)
             tree.add_reference(reference)
 
+        return tree
+
     def _get_data(self):
-        return ":".join(Tree._format_reference(reference) for reference in self.references)
+        hash_paired_formats = []
+        for reference in self.references:
+            hash_paired_formats.append((
+                reference.hash,
+                Tree._format_reference(reference))
+            )
+
+        hash_paired_formats.sort(key=lambda p: p[1])
+
+        return ":".join(hash_paired[1] for hash_paired in hash_paired_formats)
 
     def add_reference(self, reference: ObjectReference):
-        self.references[reference.hash] = reference
+        self.references.append(reference)
 
     @staticmethod
-    def _format_reference(reference: Object) -> str:
-        return f"{reference.get_hash()}{reference.name}"
+    def _format_reference(reference: ObjectReference) -> str:
+        return f"{reference.hash}{reference.name}"
 
     @staticmethod
     def type_label():
