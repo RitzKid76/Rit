@@ -12,14 +12,29 @@ from typing import cast
 class Database:
 
     @staticmethod
+    def str_to_bytes(data: str) -> bytes:
+        return data.encode("utf-8")
+
+    @staticmethod
+    def bytes_to_str(data: bytes) -> str:
+        return data.decode("utf-8")
+
+    @staticmethod
+    def _create_folder(path: str):
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+
+    @staticmethod
     def _read_file(path: str) -> bytes:
         with open(path, "rb") as f:
             return f.read()
 
     @staticmethod
-    def _write_file(path: str, contents: bytes):
-        directory = os.path.dirname(path)
-        os.makedirs(directory, exist_ok=True)
+    def _write_file(path: str, contents: str | bytes):
+        Database._create_folder(path)
+
+        if isinstance(contents, str):
+            contents = Database.str_to_bytes(contents)
 
         with open(path, "wb") as f:
             f.write(contents)
@@ -31,17 +46,17 @@ class Database:
         compressed = Database._read_file(path)
         decompressed = gzip.decompress(compressed)
 
-        return decompressed.decode("utf-8")
+        return Database.bytes_to_str(decompressed)
 
     @staticmethod
     def _write_data(contents: str | bytes):
         if isinstance(contents, bytes):
-            contents = contents.decode("utf-8")
+            contents = Database.bytes_to_str(contents)
 
         hash = Hash.from_contents(contents)
         path = Database._database_path(hash)
 
-        decompressed = contents.encode("utf-8")
+        decompressed = Database.str_to_bytes(contents)
         compressed = gzip.compress(decompressed)
 
         Database._write_file(path, compressed)
@@ -89,7 +104,7 @@ class Database:
 
     @staticmethod
     def _create_blob_reference(path: str) -> ObjectReference:
-        contents = Database._read_file(path).decode("utf-8")
+        contents = Database.bytes_to_str(Database._read_file(path))
         blob = Blob(contents)
         name = os.path.basename(path)
 
@@ -127,3 +142,28 @@ class Database:
     @staticmethod
     def store(path: str):
         Database._write_reference(Database._create_tree_reference(path))
+
+    @staticmethod
+    def _load_reference(reference: ObjectReference, path: str = "test"):
+        object = reference.get_object()
+        path = os.path.join(path, reference.name)
+
+        if isinstance(object, Blob):
+            Database._write_file(path, object.contents)
+            return
+
+        tree = cast(Tree, object)
+        for reference in tree.references:
+            Database._load_reference(reference, path)
+
+    @staticmethod
+    def load(hash: Hash):
+        object = Database.read_object(hash)
+
+        if isinstance(object, Blob):
+            raise ValueError(
+                f"hash {hash} points to a blob. file name is not recoverable")
+
+        tree = cast(Tree, object)
+        for reference in tree.references:
+            Database._load_reference(reference)

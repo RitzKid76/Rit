@@ -24,8 +24,8 @@ class ObjectReference:
         if self.object is not None:
             return self.object
 
-    # try:
-    #     from object.database import Database
-    #     return Database.read_object(self.hash)
-    # except FileNotFoundError:
-        raise AttributeError(f"reference to [{self.hash}] does not contain an object")
+        try:
+            from object.database import Database
+            return Database.read_object(self.hash)
+        except FileNotFoundError:
+            raise AttributeError(f"reference to [{self.hash}] does not contain an object")

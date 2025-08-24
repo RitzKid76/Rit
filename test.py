@@ -29,8 +29,8 @@ def main():
     # populate_database_for_testing()
     # read_database_for_testing()
 
-    Database.store("test")
-    # Database.load(Hash.from_partial("810"))
+    # Database.store("test")
+    Database.load(Hash.from_partial("810"))
 
 
 if __name__ == "__main__":
