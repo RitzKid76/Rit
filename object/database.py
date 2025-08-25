@@ -1,6 +1,7 @@
 import gzip
 import os
 
+from file_manager import FileManager
 from object.hash import Hash
 from object.object import Object
 from object.object_reference import ObjectReference
@@ -12,54 +13,26 @@ from typing import cast
 class Database:
 
     @staticmethod
-    def str_to_bytes(data: str) -> bytes:
-        return data.encode("utf-8")
-
-    @staticmethod
-    def bytes_to_str(data: bytes) -> str:
-        return data.decode("utf-8")
-
-    @staticmethod
-    def _create_folder(path: str):
-        directory = os.path.dirname(path)
-        os.makedirs(directory, exist_ok=True)
-
-    @staticmethod
-    def _read_file(path: str) -> bytes:
-        with open(path, "rb") as f:
-            return f.read()
-
-    @staticmethod
-    def _write_file(path: str, contents: str | bytes):
-        Database._create_folder(path)
-
-        if isinstance(contents, str):
-            contents = Database.str_to_bytes(contents)
-
-        with open(path, "wb") as f:
-            f.write(contents)
-
-    @staticmethod
     def _read_data(hash: Hash) -> str:
-        path = Database._database_path(hash)
+        path = Database._database_path(hash.database_path())
 
-        compressed = Database._read_file(path)
+        compressed = FileManager.read_file(path)
         decompressed = gzip.decompress(compressed)
 
-        return Database.bytes_to_str(decompressed)
+        return FileManager.bytes_to_str(decompressed)
 
     @staticmethod
     def _write_data(contents: str | bytes):
         if isinstance(contents, bytes):
-            contents = Database.bytes_to_str(contents)
+            contents = FileManager.bytes_to_str(contents)
 
         hash = Hash.from_contents(contents)
-        path = Database._database_path(hash)
+        path = Database._database_path(hash.database_path())
 
-        decompressed = Database.str_to_bytes(contents)
+        decompressed = FileManager.str_to_bytes(contents)
         compressed = gzip.compress(decompressed)
 
-        Database._write_file(path, compressed)
+        FileManager.write_file(path, compressed)
 
     @staticmethod
     def read_object(hash: Hash) -> Object:
@@ -72,8 +45,8 @@ class Database:
         Database._write_data(object.get_data())
 
     @staticmethod
-    def _database_path(hash: Hash) -> str:
-        return f"database/{hash.database_path()}"
+    def _database_path(path: str) -> str:
+        return f"objects/{path}"
 
     @staticmethod
     def complete_hash(partial_hash: str) -> Hash:
@@ -91,20 +64,16 @@ class Database:
     def get_subset(subset: str) -> list[Hash]:
         output = []
 
-        subset_path = f"database/{subset}"
-        for path in os.listdir(subset_path):
+        subset_path = Database._database_path(subset)
+        for path in FileManager.listdir(subset_path):
             path = os.path.join(subset_path, path)
             output.append(Hash.from_path(path))
 
         return output
 
     @staticmethod
-    def _is_dir(path: str) -> bool:
-        return os.path.isdir(path)
-
-    @staticmethod
     def _create_blob_reference(path: str) -> ObjectReference:
-        contents = Database.bytes_to_str(Database._read_file(path))
+        contents = FileManager.bytes_to_str(FileManager.read_file(path, True))
         blob = Blob(contents)
         name = os.path.basename(path)
 
@@ -112,13 +81,13 @@ class Database:
 
     @staticmethod
     def _create_tree_reference(path: str) -> ObjectReference:
-        if not Database._is_dir(path):
+        if not FileManager.is_dir(path):
             return Database._create_blob_reference(path)
 
         tree = Tree()
         name = os.path.basename(path)
 
-        for dir in os.listdir(path):
+        for dir in FileManager.listdir(path, True):
             dir = os.path.join(path, dir)
 
             reference = Database._create_tree_reference(dir)
@@ -149,7 +118,7 @@ class Database:
         path = os.path.join(path, reference.name)
 
         if isinstance(object, Blob):
-            Database._write_file(path, object.contents)
+            FileManager.write_file(path, object.contents, True)
             return
 
         tree = cast(Tree, object)
