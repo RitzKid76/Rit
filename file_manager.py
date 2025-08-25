@@ -14,6 +14,10 @@ class FileManager:
     @staticmethod
     def _create_folder(path: str):
         directory = os.path.dirname(path)
+
+        if not directory:
+            return
+
         os.makedirs(directory, exist_ok=True)
 
     @staticmethod
