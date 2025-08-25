@@ -43,7 +43,10 @@ class FileManager:
     def listdir(path: str, external: bool = False) -> list[str]:
         path = FileManager._wrap_internal(path, external)
 
-        return os.listdir(path)
+        try:
+            return os.listdir(path)
+        except FileNotFoundError:
+            return []
 
     @staticmethod
     def _wrap_internal(path: str, external: bool) -> str:
