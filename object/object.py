@@ -2,35 +2,43 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from data.data_reader import DataReader
+from data.data_writer import DataWriter
 from object.hash import Hash
 
 
 class Object(ABC):
 
     @classmethod
-    def from_data(cls, raw_data: str) -> Object:
+    def from_reader(cls, reader: DataReader) -> Object:
         from object.type.blob import Blob
         from object.type.tree import Tree
 
-        type_label, data = raw_data[:1], raw_data[1:]
+        from data.file_manager import FileManager
 
-        if type_label == Blob.type_label():
-            return Blob._from_data(data)
-        elif type_label == Tree.type_label():
-            return Tree._from_data(data)
+        type = reader.read_char()
 
-        raise ValueError(f"unknown data type: {type_label}\nraw: {raw_data}")
+        if type == Blob.type():
+            return Blob.deserialize(reader)
+        elif type == Tree.type():
+            return Tree.deserialize(reader)
 
-    @classmethod
+        raise ValueError(f"unknown data type: {type}")
+
     @abstractmethod
-    def _from_data(data: str) -> Object:
+    def deserialize(self, data: DataReader) -> Object:
         pass
 
-    def get_data(self) -> str:
-        return f"{self.type_label()}{self._get_data()}"
+    def get_data(self) -> bytes:
+        writer = DataWriter()
+
+        writer.write_char(self.type())
+        self.serialize(writer)
+
+        return writer.bytes()
 
     @abstractmethod
-    def _get_data(self) -> str:
+    def serialize(self, writer: DataWriter):
         pass
 
     def get_hash(self) -> Hash:
@@ -38,5 +46,5 @@ class Object(ABC):
 
     @staticmethod
     @abstractmethod
-    def type_label() -> str:
+    def type() -> str:
         pass

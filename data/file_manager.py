@@ -32,7 +32,7 @@ class FileManager:
             return f.read()
 
     @staticmethod
-    def write_file(path: str, contents: str | bytes, external: bool = False):
+    def write_file(path: str, contents: bytes, external: bool = False):
         path = FileManager._wrap_internal(path, external)
 
         FileManager._create_folder(path)

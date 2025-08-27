@@ -1,7 +1,8 @@
 import gzip
 import os
 
-from file_manager import FileManager
+from data.data_reader import DataReader
+from data.file_manager import FileManager
 from object.hash import Hash
 from object.object import Object
 from object.object_reference import ObjectReference
@@ -13,32 +14,28 @@ from typing import cast
 class Database:
 
     @staticmethod
-    def _read_data(hash: Hash) -> str:
+    def _read_data(hash: Hash) -> DataReader:
         path = Database._database_path(hash.database_path())
 
         compressed = FileManager.read_file(path)
         decompressed = gzip.decompress(compressed)
 
-        return FileManager.bytes_to_str(decompressed)
+        return DataReader(decompressed)
 
     @staticmethod
-    def _write_data(contents: str | bytes):
-        if isinstance(contents, bytes):
-            contents = FileManager.bytes_to_str(contents)
-
-        hash = Hash.from_contents(contents)
+    def _write_data(data: bytes):
+        hash = Hash.from_contents(data)
         path = Database._database_path(hash.database_path())
 
-        decompressed = FileManager.str_to_bytes(contents)
-        compressed = gzip.compress(decompressed)
+        compressed = gzip.compress(data)
 
         FileManager.write_file(path, compressed)
 
     @staticmethod
     def read_object(hash: Hash) -> Object:
-        data = Database._read_data(hash)
+        data_reader = Database._read_data(hash)
 
-        return Object.from_data(data)
+        return Object.from_reader(data_reader)
 
     @staticmethod
     def write_object(object: Object):
@@ -53,7 +50,7 @@ class Database:
         subset = partial_hash[:2]
 
         candidates = Database.get_subset(subset)
-        matches = [h for h in candidates if h.hash.startswith(partial_hash)]
+        matches = [h for h in candidates if str(h).startswith(partial_hash)]
 
         match len(matches):
             case 0: raise ValueError(f"no hashes matching partial: {partial_hash}")
@@ -118,7 +115,7 @@ class Database:
         path = os.path.join(path, reference.name)
 
         if isinstance(object, Blob):
-            FileManager.write_file(path, object.contents, True)
+            FileManager.write_file(path, FileManager.str_to_bytes(object.contents), True)
             return
 
         tree = cast(Tree, object)

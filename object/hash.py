@@ -21,8 +21,11 @@ class Hash:
         return Database.complete_hash(hash)
 
     @classmethod
-    def from_contents(cls, contents: str) -> Hash:
-        return cls(hashlib.sha1(contents.encode("utf-8")).hexdigest())
+    def from_contents(cls, contents: str | bytes) -> Hash:
+        if isinstance(contents, str):
+            contents = contents.encode("utf-8")
+
+        return cls(hashlib.sha1(contents).hexdigest())
 
     @classmethod
     def from_path(cls, path: str) -> Hash:
@@ -32,6 +35,13 @@ class Hash:
             return cls(a + b)
 
         raise ValueError(f"No hash found in {path}")
+    
+    @classmethod
+    def from_bytes(cls, bytes: bytes) -> Hash:
+        return Hash(bytes.hex())
+    
+    def to_bytes(self) -> bytes:
+        return bytes.fromhex(self.hash)
 
     def database_path(self) -> str:
         folder = self.hash[:2]

@@ -9,7 +9,7 @@ class ObjectReference:
     def __init__(self, hash: Hash, name: str):
         self.name = name
         self.hash = hash
-        self.object = None
+        self.object: Object | None = None
 
     @classmethod
     def from_object(cls, object: Object, name: str) -> ObjectReference:

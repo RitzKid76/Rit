@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from data.data_reader import DataReader
+from data.data_writer import DataWriter
 from object.object import Object
 
 
@@ -9,12 +11,12 @@ class Blob(Object):
         self.contents = contents
 
     @classmethod
-    def _from_data(cls, data: str) -> Blob:
-        return cls(data)
+    def deserialize(cls, reader: DataReader) -> Blob:
+        return cls(reader.read_string())
 
-    def _get_data(self):
-        return self.contents
-    
+    def serialize(self, writer: DataWriter):
+        writer.write_string(self.contents)
+
     @staticmethod
-    def type_label() -> str:
+    def type() -> str:
         return "b"

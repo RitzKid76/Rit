@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from object.hash import Hash
+from data.data_reader import DataReader
+from data.data_writer import DataWriter
 from object.object import Object
 from object.object_reference import ObjectReference
 
@@ -11,38 +12,35 @@ class Tree(Object):
         self.references: list[ObjectReference] = []
 
     @classmethod
-    def _from_data(cls, data: str) -> Tree:
+    def deserialize(cls, reader: DataReader) -> Tree:
         tree = cls()
 
-        data = data.split(":")
-
-        for data_reference in data:
-            hash, name = Hash(data_reference[:40]), data_reference[40:]
-
-            reference = ObjectReference(hash, name)
-            tree.add_reference(reference)
+        while reader:
+            tree.add_reference(Tree.deserialize_reference(reader))
 
         return tree
 
-    def _get_data(self):
-        hash_paired_formats = []
+    def serialize(self, writer: DataWriter):
+        self.references.sort(key=lambda r: str(r.hash))
+
         for reference in self.references:
-            hash_paired_formats.append((
-                reference.hash,
-                Tree._format_reference(reference))
-            )
-
-        hash_paired_formats.sort(key=lambda p: p[1])
-
-        return ":".join(hash_paired[1] for hash_paired in hash_paired_formats)
+            Tree.serialize_reference(writer, reference)
 
     def add_reference(self, reference: ObjectReference):
         self.references.append(reference)
 
     @staticmethod
-    def _format_reference(reference: ObjectReference) -> str:
-        return f"{reference.hash}{reference.name}"
+    def deserialize_reference(reader: DataReader) -> ObjectReference:
+        hash = reader.read_hash()
+        name = reader.read_string()
+
+        return ObjectReference(hash, name)
 
     @staticmethod
-    def type_label():
+    def serialize_reference(writer: DataWriter, reference: ObjectReference):
+        writer.write_hash(reference.hash)
+        writer.write_string(reference.name)
+
+    @staticmethod
+    def type():
         return "t"
