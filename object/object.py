@@ -13,8 +13,7 @@ class Object(ABC):
     def from_reader(cls, reader: DataReader) -> Object:
         from object.type.blob import Blob
         from object.type.tree import Tree
-
-        from data.file_manager import FileManager
+        from object.type.commit import Commit
 
         type = reader.read_char()
 
@@ -22,6 +21,8 @@ class Object(ABC):
             return Blob.deserialize(reader)
         elif type == Tree.type():
             return Tree.deserialize(reader)
+        elif type == Commit.type():
+            return Commit.deserialize(reader)
 
         raise ValueError(f"unknown data type: {type}")
 

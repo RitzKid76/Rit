@@ -16,7 +16,7 @@ class Tree(Object):
         tree = cls()
 
         while reader:
-            tree.add_reference(Tree.deserialize_reference(reader))
+            tree.add_reference(reader.read_reference())
 
         return tree
 
@@ -24,23 +24,11 @@ class Tree(Object):
         self.references.sort(key=lambda r: str(r.hash))
 
         for reference in self.references:
-            Tree.serialize_reference(writer, reference)
+            writer.write_reference(reference)
 
     def add_reference(self, reference: ObjectReference):
         self.references.append(reference)
 
     @staticmethod
-    def deserialize_reference(reader: DataReader) -> ObjectReference:
-        hash = reader.read_hash()
-        name = reader.read_string()
-
-        return ObjectReference(hash, name)
-
-    @staticmethod
-    def serialize_reference(writer: DataWriter, reference: ObjectReference):
-        writer.write_hash(reference.hash)
-        writer.write_string(reference.name)
-
-    @staticmethod
-    def type():
+    def type() -> str:
         return "t"

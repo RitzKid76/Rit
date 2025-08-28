@@ -21,10 +21,7 @@ class Hash:
         return Database.complete_hash(hash)
 
     @classmethod
-    def from_contents(cls, contents: str | bytes) -> Hash:
-        if isinstance(contents, str):
-            contents = contents.encode("utf-8")
-
+    def from_contents(cls, contents: bytes) -> Hash:
         return cls(hashlib.sha1(contents).hexdigest())
 
     @classmethod

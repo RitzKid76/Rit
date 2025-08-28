@@ -6,7 +6,7 @@ from object.object import Object
 
 class ObjectReference:
 
-    def __init__(self, hash: Hash, name: str):
+    def __init__(self, hash: Hash, name: str = ""):
         self.name = name
         self.hash = hash
         self.object: Object | None = None
@@ -23,9 +23,6 @@ class ObjectReference:
     def get_object(self) -> Object:
         if self.object is not None:
             return self.object
-
-        try:
-            from object.database import Database
-            return Database.read_object(self.hash)
-        except FileNotFoundError:
-            raise AttributeError(f"reference to [{self.hash}] does not contain an object")
+        
+        from object.database import Database
+        return Database.read_object(self.hash)

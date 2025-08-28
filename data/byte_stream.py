@@ -7,8 +7,7 @@ class ByteStream:
         self.buffer = deque(data)
 
     def read(self, n: int) -> bytes:
-        count = min(n, self.size())
-        return bytes(self.buffer.popleft() for _ in range(count))
+        return bytes(self.buffer.popleft() for _ in range(n))
 
     def write(self, data: bytes):
         self.buffer.extend(data)

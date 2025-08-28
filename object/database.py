@@ -1,5 +1,6 @@
 import gzip
 import os
+from typing import cast
 
 from data.data_reader import DataReader
 from data.file_manager import FileManager
@@ -7,8 +8,8 @@ from object.hash import Hash
 from object.object import Object
 from object.object_reference import ObjectReference
 from object.type.blob import Blob
+from object.type.commit import Commit
 from object.type.tree import Tree
-from typing import cast
 
 
 class Database:
@@ -33,12 +34,15 @@ class Database:
 
     @staticmethod
     def read_object(hash: Hash) -> Object:
-        data_reader = Database._read_data(hash)
+        try:
+            data_reader = Database._read_data(hash)
+        except FileNotFoundError:
+            raise AttributeError(f"reference to [{hash}] does not contain an object")
 
         return Object.from_reader(data_reader)
 
     @staticmethod
-    def write_object(object: Object):
+    def _write_object(object: Object):
         Database._write_data(object.get_data())
 
     @staticmethod
@@ -96,7 +100,7 @@ class Database:
     @staticmethod
     def _write_reference(reference: ObjectReference):
         object = reference.get_object()
-        Database.write_object(object)
+        Database._write_object(object)
 
         if isinstance(object, Blob):
             return
@@ -106,11 +110,7 @@ class Database:
             Database._write_reference(reference)
 
     @staticmethod
-    def store(path: str):
-        Database._write_reference(Database._create_tree_reference(path))
-
-    @staticmethod
-    def _load_reference(reference: ObjectReference, path: str = "test"):
+    def _load_reference(reference: ObjectReference, path: str = "test_output"):
         object = reference.get_object()
         path = os.path.join(path, reference.name)
 
@@ -123,13 +123,27 @@ class Database:
             Database._load_reference(reference, path)
 
     @staticmethod
-    def load(hash: Hash):
+    def _load(hash: Hash):
         object = Database.read_object(hash)
 
-        if isinstance(object, Blob):
+        if not isinstance(object, Commit):
             raise ValueError(
-                f"hash {hash} points to a blob. file name is not recoverable")
+                f"hash {hash} points to a {type(object)}.")
 
-        tree = cast(Tree, object)
-        for reference in tree.references:
-            Database._load_reference(reference)
+        commit = cast(Commit, object)
+        Database._load_reference(commit.get_tree_reference())
+
+    @staticmethod
+    def create_commit(message: str, path: str = "."):
+        tree = Database._create_tree_reference(path)
+        Database._write_reference(tree)
+
+        commit = Commit(tree.hash, message)
+        Database._write_object(commit)
+
+
+    @staticmethod
+    def load_commit(partial_hash: str):
+        hash = Hash.from_partial(partial_hash)
+
+        Database._load(hash)

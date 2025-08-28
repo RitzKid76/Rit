@@ -1,13 +1,27 @@
 from __future__ import annotations
 
+import struct
+from typing import TYPE_CHECKING
+
 from data.byte_stream import ByteStream
 from object.hash import Hash
+
+if TYPE_CHECKING:
+    from object.object_reference import ObjectReference
 
 
 class DataReader:
 
-    def __init__(self, data: bytes):
-        self.stream = ByteStream(data)
+    def __init__(self, data: bytes | ByteStream):
+        self.stream = data if isinstance(data, ByteStream) else ByteStream(data)
+
+    def read_reference(self) -> ObjectReference:
+        from object.object_reference import ObjectReference
+
+        hash = self.read_hash()
+        name = self.read_string()
+
+        return ObjectReference(hash, name)
 
     def read_hash(self) -> Hash:
         return Hash.from_bytes(self.stream.read(20))
@@ -19,7 +33,10 @@ class DataReader:
         return chr(self.stream.read(1)[0])
     
     def read_int(self) -> int:
-        return int(self.stream.read(4))
+        return int.from_bytes(self.stream.read(4), "big")
+    
+    def read_float(self) -> float:
+        return struct.unpack('>d', self.stream.read(8))[0]
 
     def read_sector(self) -> bytes:
         length = self.read_int()
