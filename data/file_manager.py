@@ -1,7 +1,15 @@
 import os
+from pathlib import Path
 
 
 class FileManager:
+
+    @staticmethod
+    def is_interal(path: str) -> bool:
+        if not FileManager.is_dir(path):
+            return False
+
+        return any(".rit" in part for part in Path(path).parts)
 
     @staticmethod
     def str_to_bytes(data: str) -> bytes:

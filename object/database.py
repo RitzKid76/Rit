@@ -81,7 +81,7 @@ class Database:
         return ObjectReference.from_object(blob, name)
 
     @staticmethod
-    def _create_tree_reference(path: str) -> ObjectReference:
+    def _create_tree_reference(path: str = ".") -> ObjectReference:
         if not FileManager.is_dir(path):
             return Database._create_blob_reference(path)
 
@@ -90,6 +90,9 @@ class Database:
 
         for dir in FileManager.listdir(path, True):
             dir = os.path.join(path, dir)
+
+            if FileManager.is_interal(dir):
+                continue
 
             reference = Database._create_tree_reference(dir)
             tree.add_reference(reference)
@@ -110,7 +113,7 @@ class Database:
             Database._write_reference(reference)
 
     @staticmethod
-    def _load_reference(reference: ObjectReference, path: str = "test_output"):
+    def _load_reference(reference: ObjectReference, path: str = "."):
         object = reference.get_object()
         path = os.path.join(path, reference.name)
 
@@ -131,11 +134,11 @@ class Database:
                 f"hash {hash} points to a {type(object)}.")
 
         commit = cast(Commit, object)
-        Database._load_reference(commit.get_tree_reference())
+        Database._load_reference(commit.get_tree_reference(), "test_output") # temporary, should be nothing
 
     @staticmethod
-    def create_commit(message: str, path: str = "."):
-        tree = Database._create_tree_reference(path)
+    def create_commit(message: str):
+        tree = Database._create_tree_reference("test_input") # temporary, should be nothing
         Database._write_reference(tree)
 
         commit = Commit(tree.hash, message)
